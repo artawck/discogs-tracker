@@ -66,10 +66,14 @@ export class TrackingListView {
     li.addEventListener('click', () => app.selectTracking(tracking.id));
     li.querySelector('.remove-icon').addEventListener('click', async (e) => {
       e.stopPropagation();
-      state.trackings = await app.api.removeTracking(tracking.id);
-      if (state.selectedId === tracking.id) state.selectedId = null;
-      this.render();
-      app.trackingDetail.render();
+      try {
+        state.trackings = await app.api.removeTracking(tracking.id);
+        if (state.selectedId === tracking.id) state.selectedId = null;
+        this.render();
+        app.trackingDetail.render();
+      } catch (err) {
+        app.showError(err.message);
+      }
     });
 
     this.#wireDragAndDrop(li, tracking);
@@ -114,7 +118,8 @@ export class TrackingListView {
   }
 
   async #handleDrop(targetId, position) {
-    const { state, api } = this.#app;
+    const app = this.#app;
+    const { state, api } = app;
     const draggedId = state.dragTrackingId;
     this.#clearDragIndicators();
     if (!draggedId || draggedId === targetId) return;
@@ -127,7 +132,12 @@ export class TrackingListView {
 
     state.sidebarSortMode = 'custom';
     el('sidebarSortMode').value = 'custom';
-    state.trackings = await api.reorderTrackings(withoutDragged);
-    this.render();
+    try {
+      state.trackings = await api.reorderTrackings(withoutDragged);
+      this.render();
+    } catch (err) {
+      app.showError(err.message);
+      this.render(); // revert to the last known-good order from state.trackings
+    }
   }
 }

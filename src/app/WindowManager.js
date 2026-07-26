@@ -55,7 +55,10 @@ class WindowManager {
   openExternalDiscogsLink(url) {
     try {
       const parsed = new URL(url);
-      if (parsed.protocol === 'https:' && parsed.hostname.endsWith('discogs.com')) {
+      // A bare endsWith('discogs.com') check would also match
+      // "evildiscogs.com" — require an exact host or a genuine subdomain.
+      const isDiscogsHost = parsed.hostname === 'discogs.com' || parsed.hostname.endsWith('.discogs.com');
+      if (parsed.protocol === 'https:' && isDiscogsHost) {
         shell.openExternal(url);
       }
     } catch {

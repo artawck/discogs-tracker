@@ -22,6 +22,8 @@ export class DiscogsTrackerApp {
   settingsModal = new SettingsModal(this);
   sidebarResizer = new SidebarResizer(this);
 
+  #toastTimer = null;
+
   t(key, vars) {
     return this.i18n.t(key, vars);
   }
@@ -71,6 +73,15 @@ export class DiscogsTrackerApp {
   setCheckingUI(inProgress) {
     el('checkNowBtn').disabled = inProgress;
     el('checkNowBtn').textContent = inProgress ? this.t('checkNow.checking') : this.t('checkNow.idle');
+  }
+
+  /** Briefly surfaces an error to the user. message is shown as-is (not translated — see README's "Known limitations"). */
+  showError(message) {
+    const toast = el('toast');
+    toast.textContent = this.t('common.error', { message });
+    toast.classList.remove('hidden');
+    if (this.#toastTimer) clearTimeout(this.#toastTimer);
+    this.#toastTimer = setTimeout(() => toast.classList.add('hidden'), 5000);
   }
 
   trackingTitle(tracking) {

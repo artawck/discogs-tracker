@@ -16,9 +16,13 @@ const CONDITION_RANK = [
 ];
 
 function conditionRank(str) {
-  if (!str) return -1;
+  // null (not -1) for missing/unrecognized: the sort comparator's
+  // "missing values sort last" check tests for null/undefined/'', and -1 is
+  // a real (falsy-but-not-missing) rank that would sort as worse than even
+  // "Poor (P)" instead of being pushed to the end like every other column.
+  if (!str) return null;
   const hit = CONDITION_RANK.find(([key]) => str.includes(key));
-  return hit ? hit[1] : -1;
+  return hit ? hit[1] : null;
 }
 
 function priceValue(str) {

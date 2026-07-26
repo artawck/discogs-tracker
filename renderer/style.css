@@ -339,3 +339,18 @@ button.full-width { width: 100%; }
 .selected-banner button { padding: 3px 8px; font-size: 12px; }
 
 a { color: var(--accent); }
+
+.toast {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  max-width: 480px;
+  background: var(--danger);
+  color: white;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}

@@ -356,6 +356,8 @@ export class AddTrackingModal {
       app.state.selectedId = added.id;
       app.trackingList.render();
       app.trackingDetail.render();
+    } catch (err) {
+      app.showError(err.message || app.t('addModal.searchFailed'));
     } finally {
       el('confirmAddBtn').disabled = false;
       el('confirmAddBtn').textContent = app.t('addModal.confirm');

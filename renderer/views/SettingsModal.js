@@ -32,13 +32,21 @@ export class SettingsModal {
     el('themeSelect').addEventListener('change', async (e) => {
       const theme = e.target.value;
       app.applyTheme(theme);
-      const result = await app.api.updateSettings({ theme });
-      app.state.settings = result.settings;
+      try {
+        const result = await app.api.updateSettings({ theme });
+        app.state.settings = result.settings;
+      } catch (err) {
+        app.showError(err.message);
+      }
     });
     el('languageSelect').addEventListener('change', async (e) => {
       await app.setLanguage(e.target.value);
-      const result = await app.api.updateSettings({ language: app.state.settings.language });
-      app.state.settings = result.settings;
+      try {
+        const result = await app.api.updateSettings({ language: app.state.settings.language });
+        app.state.settings = result.settings;
+      } catch (err) {
+        app.showError(err.message);
+      }
     });
 
     wireModalKeyboard(el('settingsModal'), () => this.close());
@@ -70,9 +78,13 @@ export class SettingsModal {
       checkMinute: Number.isFinite(m) ? m : 0,
       launchAtLogin: el('launchAtLoginInput').checked,
     };
-    const result = await app.api.updateSettings(patch);
-    app.state.settings = result.settings;
-    app.renderNextRun(result.nextRunAt);
-    this.close();
+    try {
+      const result = await app.api.updateSettings(patch);
+      app.state.settings = result.settings;
+      app.renderNextRun(result.nextRunAt);
+      this.close();
+    } catch (err) {
+      app.showError(err.message);
+    }
   }
 }

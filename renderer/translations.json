@@ -5,6 +5,7 @@
       "checkNow.idle": "Check now",
       "checkNow.checking": "Checking…",
       "settings.buttonTitle": "Settings",
+      "common.error": "Error: {{message}}",
 
       "sidebar.addTracking": "+ Add tracking",
       "sidebar.sortByLabel": "Sort by",
@@ -109,6 +110,7 @@
       "checkNow.idle": "Перевірити зараз",
       "checkNow.checking": "Перевіряємо…",
       "settings.buttonTitle": "Налаштування",
+      "common.error": "Помилка: {{message}}",
 
       "sidebar.addTracking": "+ Додати відстеження",
       "sidebar.sortByLabel": "Сортувати за",

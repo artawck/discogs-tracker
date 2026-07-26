@@ -13,6 +13,7 @@ const { TrayController } = require('./TrayController');
 const { NotificationService } = require('./NotificationService');
 const { IpcChannels } = require('../ipcChannels');
 const { initI18n } = require('../i18n');
+const { DiscogsEntityType, TrackingMode } = require('../domain/constants');
 
 /** Top-level controller that wires every service together and owns app lifecycle. */
 class DiscogsTrackerApp {
@@ -96,6 +97,26 @@ class DiscogsTrackerApp {
     app.setLoginItemSettings({ openAtLogin: !!this.#store.getSettings().launchAtLogin, openAsHidden: true });
   }
 
+  /**
+   * The renderer is expected to only ever send well-formed payloads (built
+   * from a resolved search candidate), but the IPC boundary is still a trust
+   * boundary: reject anything malformed here rather than letting a bad
+   * discogsId/discogsType silently persist and fail on every future check.
+   */
+  #validateAddTrackingPayload(payload) {
+    const validTypes = Object.values(DiscogsEntityType);
+    if (!payload || !validTypes.includes(payload.discogsType)) {
+      throw new Error(`discogsType must be one of: ${validTypes.join(', ')}.`);
+    }
+    if (typeof payload.discogsId !== 'number' || !Number.isFinite(payload.discogsId)) {
+      throw new Error('discogsId is required and must be a number.');
+    }
+    const validModes = Object.values(TrackingMode);
+    if (payload.mode !== undefined && !validModes.includes(payload.mode)) {
+      throw new Error(`mode must be one of: ${validModes.join(', ')}.`);
+    }
+  }
+
   #registerIpcHandlers() {
     ipcMain.handle(IpcChannels.GET_STATE, () => ({
       trackings: this.#store.getTrackings(),
@@ -121,19 +142,20 @@ class DiscogsTrackerApp {
     });
 
     ipcMain.handle(IpcChannels.ADD_TRACKING, async (_e, payload) => {
-      const tracking = this.#store.addTracking(payload);
+      this.#validateAddTrackingPayload(payload);
+      const tracking = await this.#store.addTracking(payload);
       // Establish baseline immediately so the user sees results right away.
       try {
         await this.#checker.runSingleCheck(tracking.id);
       } catch (err) {
         console.error(`DiscogsTrackerApp: baseline check failed for new tracking ${tracking.id}`, err);
-        this.#store.updateTrackingResult(tracking.id, { error: err.message });
+        await this.#store.updateTrackingResult(tracking.id, { error: err.message });
       }
       return this.#store.getTrackings();
     });
 
-    ipcMain.handle(IpcChannels.REMOVE_TRACKING, (_e, id) => {
-      this.#store.removeTracking(id);
+    ipcMain.handle(IpcChannels.REMOVE_TRACKING, async (_e, id) => {
+      await this.#store.removeTracking(id);
       return this.#store.getTrackings();
     });
 
@@ -145,7 +167,7 @@ class DiscogsTrackerApp {
     });
 
     ipcMain.handle(IpcChannels.UPDATE_SETTINGS, async (_e, patch) => {
-      const settings = this.#store.updateSettings(patch);
+      const settings = await this.#store.updateSettings(patch);
       await this.#i18n.changeLanguage(settings.language);
       this.#scheduler.reschedule();
       this.#applyLoginItemSetting();

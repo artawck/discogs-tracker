@@ -38,8 +38,8 @@ class MarketplaceScraper {
    * (verified directly against the live site). We resolve the tracking's
    * country name to that code via the library's own lookup table. If for some
    * reason a name doesn't resolve, we fall back to fetching everything and
-   * filtering by item.country.name ourselves, so a tracking never silently
-   * loses its country filter.
+   * filtering client-side, so a tracking never silently loses its country
+   * filter.
    */
   async fetchListings({ discogsType, discogsId, country }) {
     const baseParams = this.#buildBaseParams(discogsType, discogsId);
@@ -53,11 +53,25 @@ class MarketplaceScraper {
 
     // Belt-and-suspenders: re-check country client-side too (cheap, and
     // covers the fallback case where we couldn't resolve a code above).
+    //
+    // Compare by ISO code, not by raw name string: CountryCatalog offers
+    // both the ISO name and Discogs' own (differently worded) alias for the
+    // same country — e.g. "United Kingdom of Great Britain and Northern
+    // Ireland" (ISO) and "United Kingdom" (Discogs alias) both resolve to
+    // "GB". Scraped listings only ever carry the Discogs-alias wording, so
+    // comparing the picked name against it as a literal string would silently
+    // zero out results whenever the user picked the ISO variant. A resolved
+    // code is unambiguous either way.
     const filtered = wantCountry
-      ? allItems.filter((item) => (item.country?.name || '').trim().toLowerCase() === wantCountry.toLowerCase())
+      ? allItems.filter((item) => this.#itemMatchesCountry(item, wantCountry, code))
       : allItems;
 
     return filtered.map((item) => this.#normalizeItem(item));
+  }
+
+  #itemMatchesCountry(item, wantCountry, code) {
+    if (code) return item.country?.code === code;
+    return (item.country?.name || '').trim().toLowerCase() === wantCountry.toLowerCase();
   }
 
   #buildBaseParams(discogsType, discogsId) {
