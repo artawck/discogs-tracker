@@ -28,7 +28,7 @@ Everything else — resolving an artist/album/label to a Discogs ID, and search 
 
 ## Requirements
 
-To *run* the packaged app: macOS (the packaged build targets `arm64`; Windows/Linux targets are configured in `package.json` but untested). No separate Node.js install needed — Electron bundles its own runtime.
+To *run* the packaged app: macOS (the packaged build targets `arm64`). Windows/Linux targets are configured in `package.json` and CI confirms they package successfully (see [Testing & CI](#testing--ci)), but the app itself hasn't been run and used on those platforms. No separate Node.js install needed — Electron bundles its own runtime.
 
 To *build* it from source: [Node.js](https://nodejs.org/) 20+.
 
@@ -41,6 +41,24 @@ npm run dist        # build a standalone Discogs Tracker.app in dist/
 ```
 
 The packaged app is unsigned (no Apple Developer certificate), so macOS Gatekeeper will warn on first launch — right-click → Open once to clear it.
+
+## Testing & CI
+
+```bash
+npm test            # runs the whole suite (node's built-in test runner, no extra dependency)
+```
+
+The suite (`test/`) exercises the real, unmodified classes through their actual public methods — nothing is extracted or refactored just to make it testable:
+
+- **Main-process classes** (`Store`, `DailyScheduler`, `CountryCatalog`, `TrackingChecker`, `MarketplaceScraper`, `DiscogsApiClient`, `WindowManager`, `TrayController`, `NotificationService`, `DiscogsTrackerApp`) are tested by injecting a fake `electron` module into Node's `require` cache (`test/helpers/fakeElectron.js`), so these classes run under plain Node with no real Electron runtime needed.
+- **Renderer classes** (`AppState`, the view classes, the renderer's own `DiscogsTrackerApp`) are tested against a real DOM via [`jsdom`](https://github.com/jsdom/jsdom), loading the actual `renderer/index.html`.
+
+GitHub Actions (`.github/workflows/ci.yml`) runs on every push to `main` and on pull requests:
+
+- **`test`** — `npm ci` + `npm test` on `ubuntu-latest`, against Node 20.x and 22.x.
+- **`build`** — `npm run dist` (a real `electron-builder` package build, not just a compile check) on a `macos-latest` / `ubuntu-latest` / `windows-latest` matrix, confirming the app packages successfully on all three OSes. Both jobs skip the Playwright Chromium download (`PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1`) since neither running the tests nor packaging the app needs the actual browser binary — only the JS wrapper code, which is unpacked as-is via `asarUnpack`.
+
+**Honesty note on what's actually been verified:** development happens on macOS, so only the `test` job and the macOS leg of `build` have been run directly against real output during development. The Linux and Windows legs of `build` are exercised by CI itself (a real `electron-builder` invocation targeting each OS, on that OS's own GitHub-hosted runner) but haven't been separately confirmed by a human running the resulting build. A successful CI run means each OS's `electron-builder` packaging step completed without error — it doesn't mean anyone has launched and used the app on Windows or Linux.
 
 ## Configuration
 
@@ -87,6 +105,11 @@ renderer/                  Renderer process (ES modules, no bundler)
   util/dom.js                   small DOM helpers
   i18n.js                       renderer-side i18next instance
   translations.json             shared EN/UK dictionary (used by both processes)
+
+test/                      Unit tests (node's built-in test runner) — see Testing & CI
+  helpers/                   fakeElectron, jsdomEnv, and other test-only fakes
+  app/, services/             main-process class tests
+  renderer/                   renderer class tests
 ```
 
 The main process and renderer are separate JS runtimes (Node vs. sandboxed Chromium), so each initializes its own `i18next` instance from the same `renderer/translations.json`. Note: Electron's sandboxed preload context (`sandbox: true`) can only `require()` a fixed allowlist of built-ins, not arbitrary local files — that's why `preload.js` inlines its IPC channel name strings instead of importing `ipcChannels.js` like the rest of the main process does.

@@ -34,7 +34,7 @@ function priceValue(str) {
 const SORTERS = {
   artist: (item) => (item.artist || '').toLowerCase(),
   edition: (item) => (item.edition || '').toLowerCase(),
-  price: priceValue,
+  price: (item) => priceValue(item.price),
   condition: (item) => conditionRank(item.condition),
   sleeveCondition: (item) => conditionRank(item.sleeveCondition),
   label: (item) => (item.label || '').toLowerCase(),
