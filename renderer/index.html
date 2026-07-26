@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:;" />
+<title>Discogs Tracker</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <img src="assets/logo.png" alt="" class="logo" width="28" height="28" />
+        <h1>Discogs Tracker</h1>
+      </div>
+      <div class="topbar-actions">
+        <span id="nextRun" class="muted"></span>
+        <button id="checkNowBtn" data-i18n="checkNow.idle">Check now</button>
+        <button id="settingsBtn" data-i18n-title="settings.buttonTitle" title="Settings">⚙</button>
+      </div>
+    </header>
+
+    <div class="body">
+      <aside class="sidebar">
+        <button id="addTrackingBtn" class="primary full-width" data-i18n="sidebar.addTracking">+ Add tracking</button>
+        <label class="sort-row">
+          <span data-i18n="sidebar.sortByLabel">Sort by</span>
+          <select id="sidebarSortMode">
+            <option value="custom" data-i18n="sidebar.sort.custom">Custom (drag to reorder)</option>
+            <option value="name" data-i18n="sidebar.sort.name">Name</option>
+            <option value="country" data-i18n="sidebar.sort.country">Country</option>
+            <option value="items" data-i18n="sidebar.sort.items">Listings</option>
+          </select>
+        </label>
+        <ul id="trackingList" class="tracking-list"></ul>
+      </aside>
+
+      <div id="sidebarResizeHandle" class="sidebar-resize-handle" role="separator" aria-orientation="vertical" aria-label="Resize sidebar"></div>
+
+      <main class="main">
+        <div id="emptyState" class="empty-state">
+          <p data-i18n="emptyState.text">No tracking selected. Add an artist, album and seller country to start tracking new marketplace listings.</p>
+        </div>
+        <div id="trackingDetail" class="tracking-detail hidden">
+          <div class="detail-header">
+            <div>
+              <h2 id="detailTitle"></h2>
+              <p id="detailMeta" class="muted"></p>
+            </div>
+            <button id="removeTrackingBtn" class="danger" data-i18n="detail.remove">Remove</button>
+          </div>
+          <p id="detailError" class="error hidden"></p>
+          <div class="table-scroll">
+            <table class="listings-table">
+              <thead>
+                <tr id="listingsHeaderRow">
+                  <th data-col="artist" class="sortable">Artist</th>
+                  <th data-col="edition" class="sortable">Edition</th>
+                  <th data-col="price" class="sortable">Price</th>
+                  <th data-col="condition" class="sortable">Media</th>
+                  <th data-col="sleeveCondition" class="sortable">Sleeve</th>
+                  <th data-col="label" class="sortable">Label</th>
+                  <th data-col="catno" class="sortable">Catalog #</th>
+                  <th data-col="seller" class="sortable">Seller</th>
+                  <th data-col="country" class="sortable">Country</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="listingsBody"></tbody>
+            </table>
+          </div>
+          <p id="noListings" class="muted hidden" data-i18n="detail.noListings">No listings currently for sale.</p>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <div id="addModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h2 data-i18n="addModal.title">Add tracking</h2>
+
+      <div class="mode-toggle" role="tablist" aria-label="Tracking mode">
+        <button id="modeArtistBtn" class="mode-btn active" type="button" role="tab" aria-selected="true" data-i18n="addModal.modeArtist">Artist Mode</button>
+        <button id="modeLabelBtn" class="mode-btn" type="button" role="tab" aria-selected="false" data-i18n="addModal.modeLabel">Label Mode</button>
+      </div>
+
+      <div id="artistModeSection">
+        <label>
+          <span data-i18n="addModal.artistLabel">Artist</span>
+          <input id="artistInput" type="text" data-i18n-placeholder="addModal.artistPlaceholder" placeholder="e.g. Boards of Canada" />
+        </label>
+        <button id="searchArtistBtn" type="button" data-i18n="addModal.searchArtist">Search artist</button>
+        <div id="artistSearchStatus" class="muted"></div>
+        <ul id="artistCandidateList" class="candidate-list"></ul>
+
+        <div id="selectedArtistBanner" class="selected-banner hidden"></div>
+
+        <div id="afterArtistSection" class="hidden">
+          <label>
+            <span data-i18n="addModal.albumLabel">Album (optional — leave blank to track everything by this artist)</span>
+            <input id="albumInput" type="text" data-i18n-placeholder="addModal.albumPlaceholder" placeholder="e.g. Music Has the Right to Children" />
+          </label>
+          <button id="searchAlbumBtn" type="button" data-i18n="addModal.searchAlbum">Search album</button>
+          <div id="albumSearchStatus" class="muted"></div>
+          <ul id="albumCandidateList" class="candidate-list"></ul>
+        </div>
+      </div>
+
+      <div id="labelModeSection" class="hidden">
+        <label>
+          <span data-i18n="addModal.labelFieldLabel">Label</span>
+          <input id="labelInput" type="text" data-i18n-placeholder="addModal.labelPlaceholder" placeholder="e.g. Warp Records" />
+        </label>
+        <button id="searchLabelBtn" type="button" data-i18n="addModal.searchLabel">Search label</button>
+        <div id="labelSearchStatus" class="muted"></div>
+        <ul id="labelCandidateList" class="candidate-list"></ul>
+
+        <div id="selectedLabelBanner" class="selected-banner hidden"></div>
+      </div>
+
+      <div id="countrySection" class="hidden">
+        <label>
+          <span data-i18n="addModal.countryLabel">Seller country</span>
+          <input id="countryInput" type="text" list="countryOptions" data-i18n-placeholder="addModal.countryPlaceholder" placeholder="Any" />
+          <datalist id="countryOptions"></datalist>
+        </label>
+      </div>
+
+      <div class="modal-actions">
+        <button id="cancelAddBtn" data-i18n="addModal.cancel">Cancel</button>
+        <button id="confirmAddBtn" class="primary" disabled data-i18n="addModal.confirm">Add tracking</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="settingsModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h2 data-i18n="settings.title">Settings</h2>
+      <label>
+        <span data-i18n="settings.tokenLabel">Discogs personal access token (optional, raises search rate limit)</span>
+        <input id="tokenInput" type="text" data-i18n-placeholder="settings.tokenPlaceholder" placeholder="optional" />
+      </label>
+      <label>
+        <span data-i18n="settings.checkTimeLabel">Daily check time</span>
+        <input id="checkTimeInput" type="time" />
+      </label>
+      <label class="checkbox-row">
+        <input id="launchAtLoginInput" type="checkbox" />
+        <span data-i18n="settings.launchAtLogin">Launch at login</span>
+      </label>
+      <label>
+        <span data-i18n="settings.themeLabel">Theme</span>
+        <select id="themeSelect">
+          <option value="system" data-i18n="settings.theme.system">System Default</option>
+          <option value="sundown" data-i18n="settings.theme.sundown">Sundown</option>
+          <option value="sunrise" data-i18n="settings.theme.sunrise">Sunrise</option>
+          <option value="blue-lagoon" data-i18n="settings.theme.blueLagoon">Blue Lagoon</option>
+          <option value="sex-on-the-beach" data-i18n="settings.theme.sexOnTheBeach">Sex on the Beach</option>
+          <option value="green-mexico" data-i18n="settings.theme.greenMexico">Green Mexico</option>
+        </select>
+      </label>
+      <label>
+        <span data-i18n="settings.languageLabel">Language</span>
+        <select id="languageSelect">
+          <option value="en">English</option>
+          <option value="uk">Українська</option>
+        </select>
+      </label>
+      <div class="modal-actions">
+        <button id="cancelSettingsBtn" data-i18n="settings.cancel">Cancel</button>
+        <button id="saveSettingsBtn" class="primary" data-i18n="settings.save">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
