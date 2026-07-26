@@ -1,0 +1,48 @@
+{
+  "name": "discogs-tracker",
+  "productName": "Discogs Tracker",
+  "version": "1.0.0",
+  "description": "Desktop app that tracks new Discogs marketplace listings for chosen artist/album/seller-country combinations and notifies you when new ones appear.",
+  "main": "src/main.js",
+  "private": true,
+  "author": "art.awck",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder"
+  },
+  "dependencies": {
+    "discogs-marketplace-api-nodejs": "1.16.8",
+    "i18next": "26.3.6"
+  },
+  "devDependencies": {
+    "electron": "33.4.11",
+    "electron-builder": "25.1.8"
+  },
+  "build": {
+    "appId": "com.artawck.discogstracker",
+    "productName": "Discogs Tracker",
+    "icon": "build/icon.icns",
+    "files": [
+      "src/**/*",
+      "renderer/**/*",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "node_modules/playwright-chromium/**/*",
+      "node_modules/playwright-core/**/*"
+    ],
+    "mac": {
+      "target": "dir",
+      "category": "public.app-category.music",
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false
+    },
+    "linux": {
+      "target": "AppImage"
+    },
+    "win": {
+      "target": "portable"
+    }
+  }
+}
